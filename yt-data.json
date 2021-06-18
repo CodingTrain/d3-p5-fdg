@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "Self-Avoiding Random Walk",
+      "views": 1000
+    },
+    {
+      "id": "Fractal Tree",
+      "views": 2000
+    },
+    {
+      "id": "Game of Life",
+      "views": 500
+    },
+    {
+      "id": "PI Day",
+      "views": 2500
+    }
+  ],
+  "links": [
+    {
+      "source": "Game of Life",
+      "target": "Self-Avoiding Random Walk",
+      "value": 5
+    },
+    {
+      "source": "Fractal Tree",
+      "target": "PI Day",
+      "value": 10
+    }
+  ]
+}

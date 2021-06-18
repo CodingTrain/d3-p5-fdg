@@ -1,91 +1,104 @@
 let data;
-const width = 600;
-const height = 600;
+let nodes, links;
+let simulation;
+let radius = 4;
 
 function preload() {
-  data = loadJSON("data.json");
+  data = loadJSON("yt-data.json");
 }
 
-function drag(simulation) {
-  function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
+function findSubject(mouseX, mouseY) {
+  let subject = null;
+  let distance = Infinity;
+  for (const n of nodes) {
+    let d = Math.hypot(mouseX - n.x - width / 2, mouseY - n.y - height / 2);
+    if (d < distance && d < n.radius) {
+      distance = d;
+      subject = n;
+    }
   }
+  return subject;
+}
 
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
+// Finding a node to drag
+let draggedNode = null;
 
-  function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
+function mousePressed() {
+  draggedNode = findSubject(mouseX, mouseY);
+  if (draggedNode) simulation.alphaTarget(0.3).restart();
+}
 
-  return d3
-    .drag()
-    .on("start", dragstarted)
-    .on("drag", dragged)
-    .on("end", dragended);
+function mouseReleased() {
+  if (draggedNode) simulation.alphaTarget(0);
+  draggedNode = null;
 }
 
 function startSimulation() {
-  const links = data.links.map((d) => Object.create(d));
-  const nodes = data.nodes.map((d) => Object.create(d));
+  links = data.links.map((d) => {
+    return Object.create(d);
+  });
+  nodes = data.nodes.map((d) => {
+    d.radius = Number(d.views) / 100;
+    return Object.create(d);
+  });
 
-  const simulation = d3
+  simulation = d3
     .forceSimulation(nodes)
     .force(
       "link",
-      d3.forceLink(links).id((d) => d.id)
+      d3
+        .forceLink(links)
+        .id((d) => d.id)
+        .distance((d) => d.value * 20)
+        .strength((d) => d.value / 10)
     )
     .force("charge", d3.forceManyBody())
     .force("x", d3.forceX(0))
     .force("y", d3.forceY(0));
 
-  d3.select("body").append("svg");
-  const svg = d3
-    .select("svg")
-    .attr("viewBox", [-width / 2, -height / 2, width, height]);
-
-  const link = svg
-    .append("g")
-    .attr("stroke", "#999")
-    .attr("stroke-opacity", 0.6)
-    .selectAll("line")
-    .data(links)
-    .join("line")
-    .attr("stroke-width", (d) => Math.sqrt(d.value));
-
-  const node = svg
-    .append("g")
-    .attr("stroke", "#fff")
-    .attr("stroke-width", 1.5)
-    .selectAll("circle")
-    .data(nodes)
-    .join("circle")
-    .attr("r", 5)
-    .attr("fill", "#000")
-    .call(drag(simulation));
-
-  node.append("title").text((d) => d.id);
-
   simulation.on("tick", () => {
-    link
-      .attr("x1", (d) => d.source.x)
-      .attr("y1", (d) => d.source.y)
-      .attr("x2", (d) => d.target.x)
-      .attr("y2", (d) => d.target.y);
-
-    node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+    render();
   });
-
-  // invalidation.then(() => simulation.stop());
 }
 
+let canvas;
+
 function setup() {
-  noCanvas();
+  createCanvas(600, 600);
+
+  background(0);
   startSimulation();
+}
+
+function render() {
+  background(0);
+  if (draggedNode) {
+    draggedNode.x = mouseX - width / 2;
+    draggedNode.y = mouseY - height / 2;
+  }
+
+  resetMatrix();
+  translate(width / 2, height / 2);
+
+  for (let link of links) {
+    const { source, target } = link;
+    stroke(240, 99, 164);
+    strokeWeight(link.value);
+    line(source.x, source.y, target.x, target.y);
+  }
+
+  let hover = findSubject(mouseX, mouseY);
+  if (hover) {
+    fill(255);
+    noStroke();
+    textAlign(LEFT, CENTER);
+    textSize(32);
+    text(hover.id, hover.x + hover.radius + 10, hover.y);
+  }
+
+  for (let node of nodes) {
+    noStroke();
+    fill(45, 197, 244);
+    circle(node.x, node.y, node.radius * 2);
+  }
 }
