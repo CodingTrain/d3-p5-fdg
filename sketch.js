@@ -1,5 +1,4 @@
 let data;
-
 const width = 600;
 const height = 600;
 
